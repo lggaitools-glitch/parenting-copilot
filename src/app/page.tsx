@@ -211,7 +211,7 @@ export default function Home() {
   if (isBootstrapping) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#f7efe8] text-slate-700">
-        Loading Parenting Copilot...
+        Getting everything ready...
       </main>
     );
   }
@@ -231,23 +231,31 @@ export default function Home() {
           <div className="mb-6 flex items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#a26d4f]">
-                Parenting Copilot
+                Tonight’s support
               </p>
               <h1 className="mt-2 text-3xl font-semibold tracking-tight">
                 Baby Sleep Coach
               </h1>
             </div>
-            <button
-              onClick={handleReset}
-              className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200 transition hover:text-slate-900"
-            >
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setState((current) => ({ ...current, profile: null }))}
+                className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200 transition hover:text-slate-900"
+              >
+                Edit profile
+              </button>
+              <button
+                onClick={handleReset}
+                className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200 transition hover:text-slate-900"
+              >
+                Reset
+              </button>
+            </div>
           </div>
 
           <p className="text-sm leading-6 text-slate-600">
-            Calm, focused sleep guidance that remembers {profile.babyName}&rsquo;s
-            context and helps {profile.parentName} decide what to do tonight.
+            Gentle, practical guidance for {profile.babyName}, tailored to what is
+            happening right now and what you want to improve next.
           </p>
 
           <section className="mt-8 rounded-3xl bg-white p-4 ring-1 ring-black/5">
@@ -467,7 +475,7 @@ export default function Home() {
           <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                Expert mode
+                Chat
               </p>
               <h2 className="mt-1 text-xl font-semibold">Sleep support</h2>
             </div>
