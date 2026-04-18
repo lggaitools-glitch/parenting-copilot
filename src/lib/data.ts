@@ -272,9 +272,9 @@ export function generateResponse(profile: BabyProfile, userMessage: string): str
   if (situation.askingAboutNaps) return buildNapResponse(profile);
   if (situation.askingAboutNightWakings) return buildNightWakingResponse(profile);
   if (situation.askingAboutBedtime) return buildBedtimeResponse(profile);
-  if (situation.askingAboutRegression) return buildRegressionResponse(profile);
-  if (situation.askingAboutEarlyWake) return buildEarlyWakeResponse(profile);
-  if (situation.askingForTransitionHelp) return buildTransitionResponse(profile);
+  if (situation.askingAboutRegression) return buildRegressionResponse();
+  if (situation.askingAboutEarlyWake) return buildEarlyWakeResponse();
+  if (situation.askingForTransitionHelp) return buildTransitionResponse();
   if (situation.askingForSchedule) return buildScheduleResponse(profile);
   if (situation.askingForReassurance) return buildReassuranceResponse(profile);
 
