@@ -277,9 +277,9 @@ export default function Home() {
                 <dd className="font-medium text-slate-900">{profile.parentName}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt>Current goal</dt>
+                <dt>Current goals</dt>
                 <dd className="text-right font-medium text-slate-900">
-                  {profile.currentGoal}
+                  {profile.currentGoals.join(", ")}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">

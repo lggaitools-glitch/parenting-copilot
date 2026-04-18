@@ -6,7 +6,7 @@ export interface BabyProfile {
   feedingType: "breast" | "bottle" | "mixed" | "solids";
   sleepSetup: string;
   currentChallenges: string[];
-  currentGoal: string;
+  currentGoals: string[];
 }
 
 export interface SleepLog {

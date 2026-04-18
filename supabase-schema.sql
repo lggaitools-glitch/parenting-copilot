@@ -9,7 +9,7 @@ create table if not exists public.baby_profiles (
   feeding_type text not null,
   sleep_setup text not null,
   current_challenges text[] not null default '{}',
-  current_goal text not null,
+  current_goals text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -18,7 +18,13 @@ alter table public.baby_profiles
   add column if not exists current_challenges text[] not null default '{}';
 
 alter table public.baby_profiles
+  add column if not exists current_goals text[] not null default '{}';
+
+alter table public.baby_profiles
   drop column if exists current_challenge;
+
+alter table public.baby_profiles
+  drop column if exists current_goal;
 
 create table if not exists public.sleep_logs (
   id uuid primary key default gen_random_uuid(),

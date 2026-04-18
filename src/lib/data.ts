@@ -105,10 +105,20 @@ function getActiveChallenges(profile: BabyProfile) {
     : ["Frequent night wakings"];
 }
 
+function getActiveGoals(profile: BabyProfile) {
+  return profile.currentGoals.length > 0
+    ? profile.currentGoals
+    : ["Fewer night wakings"];
+}
+
 function getChallengeTips(profile: BabyProfile) {
   return getActiveChallenges(profile).flatMap(
     (challenge) => challengeAdvice[challenge] ?? [],
   );
+}
+
+function getGoalTips(profile: BabyProfile) {
+  return getActiveGoals(profile).flatMap((goal) => goalAdvice[goal] ?? []);
 }
 
 export function generateResponse(profile: BabyProfile, userMessage: string): string {
@@ -117,10 +127,13 @@ export function generateResponse(profile: BabyProfile, userMessage: string): str
   const firstChallenge = getActiveChallenges(profile)[0];
 
   if (msg.includes("plan") || msg.includes("tonight")) {
-    const tips = goalAdvice[profile.currentGoal] ?? [];
+    const tips = getGoalTips(profile);
     return `Here is a focused plan for ${profile.babyName} tonight:\n\n1. ${challengeTips[0] ?? "Keep bedtime calm and repeatable."}\n2. ${tips[0] ?? "Aim for an age-appropriate bedtime."}\n3. ${tips[1] ?? "Keep the routine short and consistent."}\n\nWe are balancing ${getActiveChallenges(profile)
       .slice(0, 2)
-      .join(" and ")} while working toward ${profile.currentGoal.toLowerCase()}.`;
+      .join(" and ")} while working toward ${getActiveGoals(profile)
+      .slice(0, 2)
+      .join(" and ")
+      .toLowerCase()}.`;
   }
 
   if (msg.includes("nap")) {
@@ -137,7 +150,7 @@ export function generateResponse(profile: BabyProfile, userMessage: string): str
     return `For a ${profile.babyAgeMonths} month old, I would start with a stable morning wake, age-appropriate wake windows, and an earlier calmer bedtime. I can map a full day for ${profile.babyName} if you want.`;
   }
 
-  const allTips = [...challengeTips, ...(goalAdvice[profile.currentGoal] ?? [])];
+  const allTips = [...challengeTips, ...getGoalTips(profile)];
   const tip = allTips[Math.floor(Math.random() * allTips.length)];
   return `Based on ${profile.babyName}'s current mix of ${getActiveChallenges(profile)
     .slice(0, 2)
@@ -145,12 +158,14 @@ export function generateResponse(profile: BabyProfile, userMessage: string): str
 }
 
 export function getSuggestedPlan(profile: BabyProfile): string[] {
-  const tips = [...getChallengeTips(profile), ...(goalAdvice[profile.currentGoal] ?? [])];
+  const tips = [...getChallengeTips(profile), ...getGoalTips(profile)];
   return tips.slice(0, 3);
 }
 
 export function getWelcomeMessage(profile: BabyProfile): string {
   return `Hi ${profile.parentName}, I am your baby sleep coach for ${profile.babyName}. I can help with ${getActiveChallenges(profile)
     .join(", ")
-    .toLowerCase()} while working toward ${profile.currentGoal.toLowerCase()}. Log today’s sleep or ask me what to change tonight.`;
+    .toLowerCase()} while working toward ${getActiveGoals(profile)
+    .join(", ")
+    .toLowerCase()}. Log today’s sleep or ask me what to change tonight.`;
 }

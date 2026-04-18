@@ -10,7 +10,7 @@ type ProfileRow = {
   feeding_type: BabyProfile["feedingType"];
   sleep_setup: string;
   current_challenges: string[] | null;
-  current_goal: string;
+  current_goals: string[] | null;
 };
 
 type SleepLogRow = {
@@ -72,7 +72,7 @@ export async function loadRemoteState(): Promise<AppState | null> {
         feedingType: profileRow.feeding_type,
         sleepSetup: profileRow.sleep_setup,
         currentChallenges: profileRow.current_challenges ?? [],
-        currentGoal: profileRow.current_goal,
+        currentGoals: profileRow.current_goals ?? [],
       }
     : null;
 
@@ -113,7 +113,7 @@ export async function saveProfile(profile: BabyProfile) {
     feeding_type: profile.feedingType,
     sleep_setup: profile.sleepSetup,
     current_challenges: profile.currentChallenges,
-    current_goal: profile.currentGoal,
+    current_goals: profile.currentGoals,
   };
 
   const { data, error } = await supabase

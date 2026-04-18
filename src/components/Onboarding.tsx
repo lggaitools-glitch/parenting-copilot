@@ -26,18 +26,19 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [currentChallenges, setCurrentChallenges] = useState<string[]>([
     CHALLENGE_OPTIONS[0],
   ]);
-  const [currentGoal, setCurrentGoal] = useState(GOAL_OPTIONS[0]);
+  const [currentGoals, setCurrentGoals] = useState<string[]>([GOAL_OPTIONS[0]]);
 
   const challengeGoalPreview =
-    currentChallenges.length > 0
-      ? `${currentChallenges.join(", ")} → ${currentGoal}`
-      : currentGoal;
+    currentChallenges.length > 0 || currentGoals.length > 0
+      ? `${currentChallenges.join(", ") || "No challenge selected"} → ${currentGoals.join(", ")}`
+      : "No focus selected yet";
 
   function canAdvance(): boolean {
     if (step === 0) return parentName.trim().length > 0;
     if (step === 1)
       return babyName.trim().length > 0 && babyAgeMonths >= 0;
-    if (step === 3) return currentChallenges.length > 0;
+    if (step === 3)
+      return currentChallenges.length > 0 && currentGoals.length > 0;
     return true;
   }
 
@@ -52,7 +53,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         feedingType,
         sleepSetup,
         currentChallenges,
-        currentGoal,
+        currentGoals,
       });
     }
   }
@@ -193,7 +194,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 What sleep challenge(s) is {babyName || "your baby"} dealing
-                with right now, and what is your main goal?
+                with right now, and what goals matter most over the next stretch?
               </p>
 
               <label className="mt-4 block text-sm font-medium text-slate-700">
@@ -229,22 +230,35 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
               </div>
 
               <label className="mt-5 block text-sm font-medium text-slate-700">
-                Your goal
+                Your goals
               </label>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Select all that apply.
+              </p>
               <div className="mt-2 flex flex-col gap-2">
-                {GOAL_OPTIONS.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setCurrentGoal(opt)}
-                    className={`rounded-2xl border px-3 py-2.5 text-left text-sm transition ${
-                      currentGoal === opt
-                        ? "border-[#2f3e34] bg-[#2f3e34] text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                {GOAL_OPTIONS.map((opt) => {
+                  const selected = currentGoals.includes(opt);
+
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() =>
+                        setCurrentGoals((current) =>
+                          selected
+                            ? current.filter((item) => item !== opt)
+                            : [...current, opt],
+                        )
+                      }
+                      className={`rounded-2xl border px-3 py-2.5 text-left text-sm transition ${
+                        selected
+                          ? "border-[#2f3e34] bg-[#2f3e34] text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
