@@ -23,20 +23,21 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [feedingType, setFeedingType] =
     useState<BabyProfile["feedingType"]>("breast");
   const [sleepSetup, setSleepSetup] = useState(SLEEP_SETUP_OPTIONS[0]);
-  const [currentChallenge, setCurrentChallenge] = useState(
+  const [currentChallenges, setCurrentChallenges] = useState<string[]>([
     CHALLENGE_OPTIONS[0],
-  );
+  ]);
   const [currentGoal, setCurrentGoal] = useState(GOAL_OPTIONS[0]);
 
   const challengeGoalPreview =
-    currentGoal === currentChallenge
-      ? currentGoal
-      : `${currentChallenge} → ${currentGoal}`;
+    currentChallenges.length > 0
+      ? `${currentChallenges.join(", ")} → ${currentGoal}`
+      : currentGoal;
 
   function canAdvance(): boolean {
     if (step === 0) return parentName.trim().length > 0;
     if (step === 1)
       return babyName.trim().length > 0 && babyAgeMonths >= 0;
+    if (step === 3) return currentChallenges.length > 0;
     return true;
   }
 
@@ -50,7 +51,7 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
         babyAgeMonths,
         feedingType,
         sleepSetup,
-        currentChallenge,
+        currentChallenges,
         currentGoal,
       });
     }
@@ -59,7 +60,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f7efe8] px-4 py-8">
       <div className="w-full max-w-md">
-        {/* Progress */}
         <div className="mb-8 flex items-center gap-2">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
@@ -192,27 +192,40 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
                 Your focus
               </h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                What&apos;s {babyName || "your baby"}&apos;s biggest sleep
-                challenge and your main goal?
+                What sleep challenge(s) is {babyName || "your baby"} dealing
+                with right now, and what is your main goal?
               </p>
 
               <label className="mt-4 block text-sm font-medium text-slate-700">
-                Current challenge
+                Current challenges
               </label>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Select all that apply.
+              </p>
               <div className="mt-2 flex flex-col gap-2">
-                {CHALLENGE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt}
-                    onClick={() => setCurrentChallenge(opt)}
-                    className={`rounded-2xl border px-3 py-2.5 text-left text-sm transition ${
-                      currentChallenge === opt
-                        ? "border-[#2f3e34] bg-[#2f3e34] text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
+                {CHALLENGE_OPTIONS.map((opt) => {
+                  const selected = currentChallenges.includes(opt);
+
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() =>
+                        setCurrentChallenges((current) =>
+                          selected
+                            ? current.filter((item) => item !== opt)
+                            : [...current, opt],
+                        )
+                      }
+                      className={`rounded-2xl border px-3 py-2.5 text-left text-sm transition ${
+                        selected
+                          ? "border-[#2f3e34] bg-[#2f3e34] text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
 
               <label className="mt-5 block text-sm font-medium text-slate-700">
@@ -270,7 +283,6 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </dl>
           </div>
 
-          {/* Navigation */}
           <div className="mt-6 flex items-center justify-between gap-3">
             {step > 0 ? (
               <button

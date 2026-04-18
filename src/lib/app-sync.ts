@@ -9,7 +9,7 @@ type ProfileRow = {
   baby_age_months: number;
   feeding_type: BabyProfile["feedingType"];
   sleep_setup: string;
-  current_challenge: string;
+  current_challenges: string[] | null;
   current_goal: string;
 };
 
@@ -71,7 +71,7 @@ export async function loadRemoteState(): Promise<AppState | null> {
         babyAgeMonths: profileRow.baby_age_months,
         feedingType: profileRow.feeding_type,
         sleepSetup: profileRow.sleep_setup,
-        currentChallenge: profileRow.current_challenge,
+        currentChallenges: profileRow.current_challenges ?? [],
         currentGoal: profileRow.current_goal,
       }
     : null;
@@ -112,7 +112,7 @@ export async function saveProfile(profile: BabyProfile) {
     baby_age_months: profile.babyAgeMonths,
     feeding_type: profile.feedingType,
     sleep_setup: profile.sleepSetup,
-    current_challenge: profile.currentChallenge,
+    current_challenges: profile.currentChallenges,
     current_goal: profile.currentGoal,
   };
 

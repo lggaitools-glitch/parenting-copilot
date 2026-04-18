@@ -5,7 +5,7 @@ export interface BabyProfile {
   babyAgeMonths: number;
   feedingType: "breast" | "bottle" | "mixed" | "solids";
   sleepSetup: string;
-  currentChallenge: string;
+  currentChallenges: string[];
   currentGoal: string;
 }
 

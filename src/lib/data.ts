@@ -99,13 +99,28 @@ const goalAdvice: Record<string, string[]> = {
   ],
 };
 
+function getActiveChallenges(profile: BabyProfile) {
+  return profile.currentChallenges.length > 0
+    ? profile.currentChallenges
+    : ["Frequent night wakings"];
+}
+
+function getChallengeTips(profile: BabyProfile) {
+  return getActiveChallenges(profile).flatMap(
+    (challenge) => challengeAdvice[challenge] ?? [],
+  );
+}
+
 export function generateResponse(profile: BabyProfile, userMessage: string): string {
   const msg = userMessage.toLowerCase();
+  const challengeTips = getChallengeTips(profile);
+  const firstChallenge = getActiveChallenges(profile)[0];
 
   if (msg.includes("plan") || msg.includes("tonight")) {
     const tips = goalAdvice[profile.currentGoal] ?? [];
-    const challengeTips = challengeAdvice[profile.currentChallenge] ?? [];
-    return `Here is a focused plan for ${profile.babyName} tonight:\n\n1. ${challengeTips[0] ?? "Keep bedtime calm and repeatable."}\n2. ${tips[0] ?? "Aim for an age-appropriate bedtime."}\n3. ${tips[1] ?? "Keep the routine short and consistent."}\n\nIf you want, I can also turn this into a 3 night progression.`;
+    return `Here is a focused plan for ${profile.babyName} tonight:\n\n1. ${challengeTips[0] ?? "Keep bedtime calm and repeatable."}\n2. ${tips[0] ?? "Aim for an age-appropriate bedtime."}\n3. ${tips[1] ?? "Keep the routine short and consistent."}\n\nWe are balancing ${getActiveChallenges(profile)
+      .slice(0, 2)
+      .join(" and ")} while working toward ${profile.currentGoal.toLowerCase()}.`;
   }
 
   if (msg.includes("nap")) {
@@ -115,30 +130,27 @@ export function generateResponse(profile: BabyProfile, userMessage: string): str
   }
 
   if (msg.includes("wake") || msg.includes("woke") || msg.includes("night")) {
-    const tips = challengeAdvice["Frequent night wakings"] ?? [];
-    return `Night wakings are brutal. For ${profile.babyName}, my first read is this: ${tips[0] ?? "Reduce overtiredness and simplify the last part of the day."} How many wakes are we seeing most nights right now?`;
+    return `Night wakings are brutal. For ${profile.babyName}, my first read is this: ${challengeAdvice[firstChallenge]?.[0] ?? "Reduce overtiredness and simplify the last part of the day."} How many wakes are we seeing most nights right now?`;
   }
 
   if (msg.includes("schedule") || msg.includes("routine")) {
     return `For a ${profile.babyAgeMonths} month old, I would start with a stable morning wake, age-appropriate wake windows, and an earlier calmer bedtime. I can map a full day for ${profile.babyName} if you want.`;
   }
 
-  const allTips = [
-    ...(challengeAdvice[profile.currentChallenge] ?? []),
-    ...(goalAdvice[profile.currentGoal] ?? []),
-  ];
+  const allTips = [...challengeTips, ...(goalAdvice[profile.currentGoal] ?? [])];
   const tip = allTips[Math.floor(Math.random() * allTips.length)];
-  return `Based on ${profile.babyName}'s current focus, I would start here: ${tip ?? "Keep things consistent and avoid overcomplicating tonight."}\n\nYou are not starting from zero, ${profile.parentName}. We can tighten this one step at a time.`;
+  return `Based on ${profile.babyName}'s current mix of ${getActiveChallenges(profile)
+    .slice(0, 2)
+    .join(" and ")}, I would start here: ${tip ?? "Keep things consistent and avoid overcomplicating tonight."}\n\nYou are not starting from zero, ${profile.parentName}. We can tighten this one step at a time.`;
 }
 
 export function getSuggestedPlan(profile: BabyProfile): string[] {
-  const tips = [
-    ...(challengeAdvice[profile.currentChallenge] ?? []),
-    ...(goalAdvice[profile.currentGoal] ?? []),
-  ];
+  const tips = [...getChallengeTips(profile), ...(goalAdvice[profile.currentGoal] ?? [])];
   return tips.slice(0, 3);
 }
 
 export function getWelcomeMessage(profile: BabyProfile): string {
-  return `Hi ${profile.parentName}, I am your baby sleep coach for ${profile.babyName}. I can help with ${profile.currentChallenge.toLowerCase()} while working toward ${profile.currentGoal.toLowerCase()}. Log today’s sleep or ask me what to change tonight.`;
+  return `Hi ${profile.parentName}, I am your baby sleep coach for ${profile.babyName}. I can help with ${getActiveChallenges(profile)
+    .join(", ")
+    .toLowerCase()} while working toward ${profile.currentGoal.toLowerCase()}. Log today’s sleep or ask me what to change tonight.`;
 }

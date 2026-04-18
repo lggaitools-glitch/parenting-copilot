@@ -68,7 +68,6 @@ export default function Home() {
   const [authScreenDismissed, setAuthScreenDismissed] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,7 +114,6 @@ export default function Home() {
   }, [profile]);
 
   async function handleOnboardingComplete(profileData: BabyProfile) {
-    setIsSavingProfile(true);
     const savedProfile = await saveProfile(profileData);
     const initialMessages = bootstrapMessages(savedProfile);
 
@@ -126,7 +124,6 @@ export default function Home() {
     });
 
     await Promise.all(initialMessages.map((message) => addChatMessage(message)));
-    setIsSavingProfile(false);
   }
 
   async function handleSendMessage() {
@@ -253,12 +250,6 @@ export default function Home() {
             context and helps {profile.parentName} decide what to do tonight.
           </p>
 
-          {isSavingProfile ? (
-            <div className="mt-4 rounded-2xl bg-[#f3dfd2] px-4 py-3 text-sm text-[#6f4733]">
-              Saving profile to Supabase...
-            </div>
-          ) : null}
-
           <section className="mt-8 rounded-3xl bg-white p-4 ring-1 ring-black/5">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -284,9 +275,9 @@ export default function Home() {
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt>Challenge</dt>
+                <dt>Challenges</dt>
                 <dd className="text-right font-medium text-slate-900">
-                  {profile.currentChallenge}
+                  {profile.currentChallenges.join(", ")}
                 </dd>
               </div>
               <div className="flex justify-between gap-4">
@@ -478,10 +469,7 @@ export default function Home() {
               <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
                 Expert mode
               </p>
-              <h2 className="mt-1 text-xl font-semibold">Sleep-only guidance</h2>
-            </div>
-            <div className="rounded-full bg-[#eef4ea] px-4 py-2 text-sm font-medium text-[#4d6b44]">
-              Vercel + Supabase ready
+              <h2 className="mt-1 text-xl font-semibold">Sleep support</h2>
             </div>
           </header>
 
@@ -523,7 +511,7 @@ export default function Home() {
               />
               <div className="mt-3 flex items-center justify-between gap-3">
                 <p className="text-xs text-slate-400">
-                  If Supabase is connected, profile, logs, and messages persist across devices.
+                  Your sleep coach keeps today’s context in mind as you keep chatting.
                 </p>
                 <button
                   onClick={() => void handleSendMessage()}
