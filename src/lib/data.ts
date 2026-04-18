@@ -1,4 +1,4 @@
-import type { BabyProfile } from "./types";
+import type { BabyProfile, SleepLog } from "./types";
 
 export const FEEDING_OPTIONS = [
   { value: "breast", label: "Breastfeeding" },
@@ -99,6 +99,43 @@ const goalAdvice: Record<string, string[]> = {
   ],
 };
 
+const ageBands = [
+  {
+    maxMonths: 3,
+    naps: "4 to 5 naps",
+    wakeWindows: "60 to 90 minutes",
+    bedtime: "later, often around 20:00 to 22:00",
+  },
+  {
+    maxMonths: 5,
+    naps: "3 to 4 naps",
+    wakeWindows: "1.5 to 2.25 hours",
+    bedtime: "around 19:00 to 20:30",
+  },
+  {
+    maxMonths: 8,
+    naps: "3 naps",
+    wakeWindows: "2 to 3 hours",
+    bedtime: "around 18:45 to 20:00",
+  },
+  {
+    maxMonths: 13,
+    naps: "2 naps",
+    wakeWindows: "2.5 to 3.5 hours",
+    bedtime: "around 18:30 to 19:45",
+  },
+  {
+    maxMonths: Infinity,
+    naps: "1 nap",
+    wakeWindows: "4 to 5.5 hours",
+    bedtime: "around 19:00 to 20:00",
+  },
+] as const;
+
+function getAgeBand(ageMonths: number) {
+  return ageBands.find((band) => ageMonths <= band.maxMonths) ?? ageBands[2];
+}
+
 function getActiveChallenges(profile: BabyProfile) {
   return profile.currentChallenges.length > 0
     ? profile.currentChallenges
@@ -121,51 +158,164 @@ function getGoalTips(profile: BabyProfile) {
   return getActiveGoals(profile).flatMap((goal) => goalAdvice[goal] ?? []);
 }
 
-export function generateResponse(profile: BabyProfile, userMessage: string): string {
-  const msg = userMessage.toLowerCase();
+function formatList(items: string[]) {
+  if (items.length === 0) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+}
+
+function normalizeMessage(message: string) {
+  return message.toLowerCase().replace(/[^a-z0-9\s]/g, " ");
+}
+
+function hasAny(msg: string, terms: string[]) {
+  return terms.some((term) => msg.includes(term));
+}
+
+function inferSituation(message: string) {
+  const msg = normalizeMessage(message);
+
+  return {
+    askingForPlan: hasAny(msg, ["plan", "tonight", "what should i do", "what do i do"]),
+    askingForSchedule: hasAny(msg, ["schedule", "routine", "wake window", "wake windows", "sample day"]),
+    askingAboutNaps: hasAny(msg, ["nap", "naps"]),
+    askingAboutNightWakings: hasAny(msg, ["wake", "woke", "night", "overnight", "false start"]),
+    askingAboutBedtime: hasAny(msg, ["bedtime", "sleep late", "sleep earlier", "fall asleep"]),
+    askingAboutRegression: hasAny(msg, ["regression", "worse than usual", "suddenly"]),
+    askingAboutEarlyWake: hasAny(msg, ["early", "5am", "5 am", "6am", "6 am", "morning waking"]),
+    askingForReassurance: hasAny(msg, ["normal", "worried", "stressed", "exhausted", "failing", "broken"]),
+    askingForTransitionHelp: hasAny(msg, ["co sleep", "cosleep", "crib", "transfer", "independent"]),
+  };
+}
+
+function createOpening(profile: BabyProfile) {
+  const challenges = formatList(getActiveChallenges(profile).slice(0, 3)).toLowerCase();
+  const goals = formatList(getActiveGoals(profile).slice(0, 3)).toLowerCase();
+  return `${profile.babyName} is dealing with ${challenges}, and we are aiming for ${goals}.`;
+}
+
+function getScheduleSummary(profile: BabyProfile) {
+  const band = getAgeBand(profile.babyAgeMonths);
+  return `At ${profile.babyAgeMonths} months, I would usually expect ${band.naps}, wake windows around ${band.wakeWindows}, and a bedtime ${band.bedtime}.`;
+}
+
+function getTonightSteps(profile: BabyProfile) {
   const challengeTips = getChallengeTips(profile);
-  const firstChallenge = getActiveChallenges(profile)[0];
+  const goalTips = getGoalTips(profile);
 
-  if (msg.includes("plan") || msg.includes("tonight")) {
-    const tips = getGoalTips(profile);
-    return `Here is a focused plan for ${profile.babyName} tonight:\n\n1. ${challengeTips[0] ?? "Keep bedtime calm and repeatable."}\n2. ${tips[0] ?? "Aim for an age-appropriate bedtime."}\n3. ${tips[1] ?? "Keep the routine short and consistent."}\n\nWe are balancing ${getActiveChallenges(profile)
-      .slice(0, 2)
-      .join(" and ")} while working toward ${getActiveGoals(profile)
-      .slice(0, 2)
-      .join(" and ")
-      .toLowerCase()}.`;
-  }
+  return [
+    challengeTips[0] ?? "Keep bedtime calm and repeatable tonight.",
+    goalTips[0] ?? "Aim for a slightly earlier and calmer bedtime.",
+    challengeTips[1] ?? goalTips[1] ?? "Keep overnight responses low-energy and consistent.",
+  ];
+}
 
-  if (msg.includes("nap")) {
-    const age = profile.babyAgeMonths;
-    const napCount = age < 4 ? "4 to 5" : age < 7 ? "3" : age < 13 ? "2" : "1";
-    return `At ${age} months, ${profile.babyName} will usually land around ${napCount} naps. ${goalAdvice["Longer naps"]?.[0] ?? "Protect the first nap and keep conditions stable."} Want me to sketch a sample day?`;
-  }
+function buildPlanResponse(profile: BabyProfile) {
+  const steps = getTonightSteps(profile);
 
-  if (msg.includes("wake") || msg.includes("woke") || msg.includes("night")) {
-    return `Night wakings are brutal. For ${profile.babyName}, my first read is this: ${challengeAdvice[firstChallenge]?.[0] ?? "Reduce overtiredness and simplify the last part of the day."} How many wakes are we seeing most nights right now?`;
-  }
+  return [
+    `Here is the simplest good plan for ${profile.babyName} tonight:`,
+    "",
+    `1. ${steps[0]}`,
+    `2. ${steps[1]}`,
+    `3. ${steps[2]}`,
+    "",
+    `${getScheduleSummary(profile)} ${createOpening(profile)}`,
+    "",
+    "If tonight is messy, that does not mean the plan is wrong. We are looking for a better pattern, not a perfect night.",
+  ].join("\n");
+}
 
-  if (msg.includes("schedule") || msg.includes("routine")) {
-    return `For a ${profile.babyAgeMonths} month old, I would start with a stable morning wake, age-appropriate wake windows, and an earlier calmer bedtime. I can map a full day for ${profile.babyName} if you want.`;
-  }
+function buildScheduleResponse(profile: BabyProfile) {
+  return `${getScheduleSummary(profile)} For ${profile.babyName}, I would anchor the morning, protect the first nap, and keep bedtime consistent before trying to optimize every detail. If you want, ask me for a sample day and I will map one out.`;
+}
 
-  const allTips = [...challengeTips, ...getGoalTips(profile)];
-  const tip = allTips[Math.floor(Math.random() * allTips.length)];
-  return `Based on ${profile.babyName}'s current mix of ${getActiveChallenges(profile)
-    .slice(0, 2)
-    .join(" and ")}, I would start here: ${tip ?? "Keep things consistent and avoid overcomplicating tonight."}\n\nYou are not starting from zero, ${profile.parentName}. We can tighten this one step at a time.`;
+function buildNapResponse(profile: BabyProfile) {
+  const tips = goalAdvice["Longer naps"] ?? [];
+  return `Short naps are common, especially when timing is a little off. ${getScheduleSummary(profile)} My first move would be this: ${tips[0] ?? "Protect the first nap and keep conditions stable."} Then ${tips[1] ?? "Try a gentle nap rescue once before ending the nap."}`;
+}
+
+function buildNightWakingResponse(profile: BabyProfile) {
+  const advice = challengeAdvice["Frequent night wakings"];
+  return `Night wakings are brutal, and they usually come from some mix of overtiredness, habit, hunger, or a schedule mismatch. My first read for ${profile.babyName}: ${advice?.[0] ?? "Reduce overtiredness and simplify the last part of the day."} ${advice?.[1] ?? "Keep the last wake window calm and slightly shorter."} If you want, tell me bedtime, naps, and number of wakes, and I’ll narrow it down.`;
+}
+
+function buildBedtimeResponse(profile: BabyProfile) {
+  const advice = challengeAdvice["Hard time falling asleep"];
+  return `If bedtime is the messy part, I would simplify it before I make it longer. ${advice?.[0] ?? "A predictable wind-down routine matters."} ${advice?.[1] ?? "Make the room darker than you think you need."} ${getScheduleSummary(profile)}`;
+}
+
+function buildRegressionResponse() {
+  const advice = challengeAdvice["Sleep regression"];
+  return `This does sound like regression territory. The annoying part is that regressions feel dramatic, but the best response is usually boring consistency. ${advice?.[0] ?? "Consistency matters more than chasing new tricks."} ${advice?.[1] ?? "Get more practice with new skills during the day."}`;
+}
+
+function buildEarlyWakeResponse() {
+  const advice = challengeAdvice["Early morning waking"];
+  return `Early wakes are usually a schedule problem, a light problem, or overtiredness showing up at dawn. ${advice?.[0] ?? "Treat pre-6 AM like a night waking."} ${advice?.[1] ?? "An earlier bedtime often helps."}`;
+}
+
+function buildTransitionResponse() {
+  const advice = challengeAdvice["Transitioning from co-sleeping"];
+  return `If you are moving away from co-sleeping, I would go gradual instead of heroic. ${advice?.[0] ?? "Go gradually, naps first if possible."} ${advice?.[1] ?? "Stay reassuring, but keep the setup consistent."}`;
+}
+
+function buildReassuranceResponse(profile: BabyProfile) {
+  return `You are not failing, and ${profile.babyName} is not broken. Baby sleep gets messy fast, especially when parents are depleted. I would narrow the focus to one or two repeatable changes and hold them for a few days before judging the result.`;
+}
+
+export function generateResponse(profile: BabyProfile, userMessage: string): string {
+  const situation = inferSituation(userMessage);
+
+  if (situation.askingForPlan) return buildPlanResponse(profile);
+  if (situation.askingAboutNaps) return buildNapResponse(profile);
+  if (situation.askingAboutNightWakings) return buildNightWakingResponse(profile);
+  if (situation.askingAboutBedtime) return buildBedtimeResponse(profile);
+  if (situation.askingAboutRegression) return buildRegressionResponse(profile);
+  if (situation.askingAboutEarlyWake) return buildEarlyWakeResponse(profile);
+  if (situation.askingForTransitionHelp) return buildTransitionResponse(profile);
+  if (situation.askingForSchedule) return buildScheduleResponse(profile);
+  if (situation.askingForReassurance) return buildReassuranceResponse(profile);
+
+  const allTips = [...getChallengeTips(profile), ...getGoalTips(profile)];
+  const topTips = allTips.slice(0, 2);
+
+  return [
+    createOpening(profile),
+    topTips[0] ?? "Keep bedtime calm and consistent tonight.",
+    topTips[1] ?? "Do less, but do it more consistently.",
+    "If you want, ask me for a tonight plan, a sample schedule, or help troubleshooting one specific problem.",
+  ].join("\n\n");
 }
 
 export function getSuggestedPlan(profile: BabyProfile): string[] {
-  const tips = [...getChallengeTips(profile), ...getGoalTips(profile)];
-  return tips.slice(0, 3);
+  return [...getTonightSteps(profile), getScheduleSummary(profile)];
 }
 
 export function getWelcomeMessage(profile: BabyProfile): string {
-  return `Hi ${profile.parentName}, I am your baby sleep coach for ${profile.babyName}. I can help with ${getActiveChallenges(profile)
-    .join(", ")
-    .toLowerCase()} while working toward ${getActiveGoals(profile)
-    .join(", ")
-    .toLowerCase()}. Log today’s sleep or ask me what to change tonight.`;
+  return `Hi ${profile.parentName}, I am here to help you think clearly about ${profile.babyName}'s sleep. ${createOpening(profile)} Tell me what is happening today, or ask for a plan for tonight.`;
+}
+
+export function createSleepLogFeedback(profile: BabyProfile, log: SleepLog): string {
+  const band = getAgeBand(profile.babyAgeMonths);
+  const response: string[] = [];
+
+  if (log.nightWakings >= 4) {
+    response.push("That was a rough night. I would protect daytime sleep and avoid stretching the last wake window tonight.");
+  } else if (log.nightWakings <= 1) {
+    response.push("That looks like a steadier night. I would keep the same rhythm tonight instead of changing too much.");
+  }
+
+  if (log.naps === 0) {
+    response.push("No naps usually makes bedtime more fragile, so I would aim for an earlier bedtime today.");
+  } else if (log.naps >= 3 && profile.babyAgeMonths >= 8) {
+    response.push(`At ${profile.babyAgeMonths} months, ${band.naps} is more typical, so I would watch for too much daytime sleep stealing from night sleep.`);
+  }
+
+  if (log.notes.trim()) {
+    response.push(`Noted: ${log.notes.trim()}`);
+  }
+
+  return response.join(" ");
 }

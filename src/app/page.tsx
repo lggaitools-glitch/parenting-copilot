@@ -11,7 +11,7 @@ import {
   loadRemoteState,
   saveProfile,
 } from "@/lib/app-sync";
-import { getSuggestedPlan } from "@/lib/data";
+import { createSleepLogFeedback, getSuggestedPlan } from "@/lib/data";
 import { clearState, loadState, saveState } from "@/lib/storage";
 import {
   exchangeCodeForSession,
@@ -180,7 +180,8 @@ export default function Home() {
     }));
     await addChatMessage(userMessage);
 
-    const replyText = await createCoachReply(profile, summaryPrompt);
+    const feedback = createSleepLogFeedback(profile, savedLog);
+    const replyText = feedback || (await createCoachReply(profile, summaryPrompt));
     const assistantReply = createAssistantMessage(replyText);
 
     setState((current) => ({
@@ -458,6 +459,8 @@ export default function Home() {
                 "Make me a 3-night plan",
                 "Help with short naps",
                 "What schedule fits this age?",
+                "Why is bedtime suddenly harder?",
+                "We had 4 wakings last night, what now?",
               ].map((prompt) => (
                 <button
                   key={prompt}
