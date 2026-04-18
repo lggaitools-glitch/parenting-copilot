@@ -2,6 +2,34 @@ import { generateResponse, getWelcomeMessage } from "./data";
 import { getSupabaseBrowserClient } from "./supabase";
 import type { AppState, BabyProfile, ChatMessage, SleepLog } from "./types";
 
+type ProfileRow = {
+  id: string;
+  parent_name: string;
+  baby_name: string;
+  baby_age_months: number;
+  feeding_type: BabyProfile["feedingType"];
+  sleep_setup: string;
+  current_challenge: string;
+  current_goal: string;
+};
+
+type SleepLogRow = {
+  id: string;
+  date: string;
+  bedtime: string;
+  night_wakings: number;
+  longest_stretch: string;
+  naps: number;
+  notes: string | null;
+};
+
+type ChatMessageRow = {
+  id: string;
+  role: ChatMessage["role"];
+  text: string;
+  timestamp: number;
+};
+
 const PROFILE_TABLE = "baby_profiles";
 const LOGS_TABLE = "sleep_logs";
 const MESSAGES_TABLE = "chat_messages";
@@ -31,20 +59,24 @@ export async function loadRemoteState(): Promise<AppState | null> {
         .limit(100),
     ]);
 
-  const profile = profileRows
+  const profileRow = profileRows as ProfileRow | null;
+  const logs = (logRows ?? []) as SleepLogRow[];
+  const messages = (messageRows ?? []) as ChatMessageRow[];
+
+  const profile = profileRow
     ? {
-        id: profileRows.id,
-        parentName: profileRows.parent_name,
-        babyName: profileRows.baby_name,
-        babyAgeMonths: profileRows.baby_age_months,
-        feedingType: profileRows.feeding_type,
-        sleepSetup: profileRows.sleep_setup,
-        currentChallenge: profileRows.current_challenge,
-        currentGoal: profileRows.current_goal,
+        id: profileRow.id,
+        parentName: profileRow.parent_name,
+        babyName: profileRow.baby_name,
+        babyAgeMonths: profileRow.baby_age_months,
+        feedingType: profileRow.feeding_type,
+        sleepSetup: profileRow.sleep_setup,
+        currentChallenge: profileRow.current_challenge,
+        currentGoal: profileRow.current_goal,
       }
     : null;
 
-  const sleepLogs: SleepLog[] = (logRows ?? []).map((row) => ({
+  const sleepLogs: SleepLog[] = logs.map((row) => ({
     id: row.id,
     date: row.date,
     bedtime: row.bedtime,
@@ -54,7 +86,7 @@ export async function loadRemoteState(): Promise<AppState | null> {
     notes: row.notes ?? "",
   }));
 
-  const chatMessages: ChatMessage[] = (messageRows ?? []).map((row) => ({
+  const chatMessages: ChatMessage[] = messages.map((row) => ({
     id: row.id,
     role: row.role,
     text: row.text,

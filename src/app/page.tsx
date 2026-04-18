@@ -13,7 +13,11 @@ import {
 } from "@/lib/app-sync";
 import { getSuggestedPlan } from "@/lib/data";
 import { clearState, loadState, saveState } from "@/lib/storage";
-import { hasSupabaseEnv } from "@/lib/supabase";
+import {
+  exchangeCodeForSession,
+  hasSupabaseEnv,
+  hasSupabaseSession,
+} from "@/lib/supabase";
 import type { AppState, BabyProfile, ChatMessage, SleepLog } from "@/lib/types";
 
 const emptyLog = {
@@ -73,6 +77,13 @@ export default function Home() {
       if (!hasSupabaseEnv()) {
         setIsBootstrapping(false);
         return;
+      }
+
+      await exchangeCodeForSession();
+      const sessionExists = await hasSupabaseSession();
+
+      if (!cancelled && sessionExists) {
+        setAuthScreenDismissed(true);
       }
 
       const remoteState = await loadRemoteState();
